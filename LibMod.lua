@@ -1,5 +1,8 @@
 --[[
   UI lib made by bungie#0001
+  
+  - Please do not use this without permission, I am working really hard on this UI to make it perfect and do not have a big 
+    problem with other people using it, please just make sure you message me and ask me before using.
 ]]
 
 -- / Locals
@@ -2975,7 +2978,6 @@ function Components:NewSelector(text, default, list, callback, multiselect)
     selectorText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     selectorText.BackgroundTransparency = 1.000
     selectorText.Size = UDim2.new(0, 394, 0, 20)
-
     selectorText.Font = Enum.Font.Code
     selectorText.LineHeight = 1.150
     selectorText.TextColor3 = Color3.fromRGB(160, 160, 160)
@@ -2986,7 +2988,7 @@ function Components:NewSelector(text, default, list, callback, multiselect)
     textBoxValuesPadding.Name = "textBoxValuesPadding"
     textBoxValuesPadding.Parent = selectorText
     textBoxValuesPadding.PaddingBottom = UDim.new(0, 6)
-    textBoxValuesPadding.PaddingLeft = UDim.new(0, 6)
+    textBoxValuesPadding.PaddingLeft = UDim.new(0, 12)
     textBoxValuesPadding.PaddingRight = UDim.new(0, 6)
     textBoxValuesPadding.PaddingTop = UDim.new(0, 6)
     
@@ -3013,6 +3015,44 @@ function Components:NewSelector(text, default, list, callback, multiselect)
     selectorPadding_2.Name = "selectorPadding"
     selectorPadding_2.Parent = selectorTwo
     selectorPadding_2.PaddingTop = UDim.new(0, 1)
+    
+    -- Search box
+    local searchBox = Instance.new("TextBox")
+    local searchBoxCorner = Instance.new("UICorner")
+    local searchBoxPadding = Instance.new("UIPadding")
+    
+    searchBox.Name = "searchBox"
+    searchBox.Parent = selectorTwo
+    searchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    searchBox.Size = UDim2.new(0, 394, 0, 20)
+    searchBox.Font = Enum.Font.Code
+    searchBox.PlaceholderText = "Search..."
+    searchBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+    searchBox.Text = ""
+    searchBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+    searchBox.TextSize = 13
+    searchBox.TextXAlignment = Enum.TextXAlignment.Left
+    searchBox.ClearTextOnFocus = true
+    
+    searchBoxCorner.CornerRadius = UDim.new(0, 2)
+    searchBoxCorner.Parent = searchBox
+    
+    searchBoxPadding.Parent = searchBox
+    searchBoxPadding.PaddingLeft = UDim.new(0, 6)
+    searchBoxPadding.PaddingRight = UDim.new(0, 6)
+    
+    -- No results label
+    local noResultsLabel = Instance.new("TextLabel")
+    noResultsLabel.Name = "noResultsLabel"
+    noResultsLabel.Parent = selectorTwo
+    noResultsLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    noResultsLabel.BackgroundTransparency = 1.000
+    noResultsLabel.Size = UDim2.new(0, 394, 0, 30)
+    noResultsLabel.Font = Enum.Font.Code
+    noResultsLabel.Text = "No matches found"
+    noResultsLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
+    noResultsLabel.TextSize = 13
+    noResultsLabel.Visible = false
     
     selectorContainer.Name = "selectorContainer"
     selectorContainer.Parent = selectorTwo
@@ -3065,18 +3105,53 @@ function Components:NewSelector(text, default, list, callback, multiselect)
     end
 
     local Amount = #list
-    local Val = (Amount * 20)
+    local Val = (Amount * 20) + 20 -- +20 for search box
     function checkSizes()
-        Amount = #list
-        Val = (Amount * 20) + 20
+        Amount = 0
+        -- Count visible options only
+        for _, child in pairs(selectorContainer:GetChildren()) do
+            if child:IsA("TextButton") and child.Visible then
+                Amount = Amount + 1
+            end
+        end
+        Val = (Amount * 20) + 20 + 24 -- +20 for initial padding, +24 for search box
     end
+    
+    -- Search filter function
+    local function filterOptions(searchText)
+        searchText = searchText:lower()
+        local visibleCount = 0
+        
+        for _, child in pairs(selectorContainer:GetChildren()) do
+            if child:IsA("TextButton") then
+                local optionText = multiselect and child.Text:gsub("^%s+", "") or child.Text
+                local matches = optionText:lower():find(searchText, 1, true) ~= nil
+                child.Visible = matches or searchText == ""
+                if child.Visible then
+                    visibleCount = visibleCount + 1
+                end
+            end
+        end
+        
+        checkSizes()
+        selectorContainer.Size = UDim2.new(0, 394, 0, visibleCount * 20)
+        selectorTwo.Size = UDim2.new(0, 394, 0, (visibleCount * 20) + 24)
+        selector.Size = UDim2.new(0, 396, 0, (visibleCount * 20) + 26)
+        selectorFrame.Size = UDim2.new(0, 396, 0, (visibleCount * 20) + 50)
+        UpdatePageSize()
+    end
+    
+    -- Connect search box
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        filterOptions(searchBox.Text)
+    end)
 
     for i,v in next, list do
         local optionButton = Instance.new("TextButton")
         local checkBox, checkBoxCorner, checkMark, checkMarkCorner
 
         local optionPadding = Instance.new("UIPadding")
-
+        
         optionButton.Name = "optionButton"
         optionButton.Parent = selectorContainer
         optionButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -3087,7 +3162,7 @@ function Components:NewSelector(text, default, list, callback, multiselect)
         optionButton.TextColor3 = Color3.fromRGB(160, 160, 160)
         optionButton.TextSize = 14.000
         optionButton.TextXAlignment = Enum.TextXAlignment.Left
-
+        
         optionPadding.Parent = optionButton
         optionPadding.PaddingLeft = UDim.new(0, 8)
 
@@ -3162,9 +3237,9 @@ function Components:NewSelector(text, default, list, callback, multiselect)
         end)
 
         selectorContainer.Size = UDim2.new(0, 394, 0, Val)
-        selectorTwo.Size = UDim2.new(0, 394, 0, Val)
-        selector.Size = UDim2.new(0, 396, 0, Val + 2)
-        selectorFrame.Size = UDim2.new(0, 396, 0, Val + 26)
+        selectorTwo.Size = UDim2.new(0, 394, 0, Val + 24)
+        selector.Size = UDim2.new(0, 396, 0, Val + 26)
+        selectorFrame.Size = UDim2.new(0, 396, 0, Val + 50)
 
         UpdatePageSize()
         checkSizes()
@@ -3182,6 +3257,7 @@ function Components:NewSelector(text, default, list, callback, multiselect)
         table.insert(list, new)
 
         local optionButton = Instance.new("TextButton")
+        local optionPadding = Instance.new("UIPadding")
         local checkBox, checkBoxCorner, checkMark, checkMarkCorner
 
         AddAmount = AddAmount + 20
@@ -3196,6 +3272,9 @@ function Components:NewSelector(text, default, list, callback, multiselect)
         optionButton.TextColor3 = Color3.fromRGB(140, 140, 140)
         optionButton.TextSize = 14.000
         optionButton.TextXAlignment = Enum.TextXAlignment.Left
+        
+        optionPadding.Parent = optionButton
+        optionPadding.PaddingLeft = UDim.new(0, 8)
 
         if multiselect then
             checkBox = Instance.new("Frame")
@@ -3256,9 +3335,9 @@ function Components:NewSelector(text, default, list, callback, multiselect)
 
         checkSizes()
         selectorContainer.Size = UDim2.new(0, 394, 0, Val + AddAmount)
-        selectorTwo.Size = UDim2.new(0, 394, 0, Val + AddAmount)
-        selector.Size = UDim2.new(0, 396, 0, (Val + AddAmount) + 2)
-        selectorFrame.Size = UDim2.new(0, 396, 0, (Val + AddAmount) + 26)
+        selectorTwo.Size = UDim2.new(0, 394, 0, Val + AddAmount + 24)
+        selector.Size = UDim2.new(0, 396, 0, Val + AddAmount + 26)
+        selectorFrame.Size = UDim2.new(0, 396, 0, Val + AddAmount + 50)
 
         UpdatePageSize()
         checkSizes()
@@ -3289,9 +3368,9 @@ function Components:NewSelector(text, default, list, callback, multiselect)
                 if optionText == option then
                     v:Destroy()
                     selectorContainer.Size = UDim2.new(0, 394, 0, Val - RemoveAmount)
-                    selectorTwo.Size = UDim2.new(0, 394, 0, Val - RemoveAmount)
-                    selector.Size = UDim2.new(0, 396, 0, (Val - RemoveAmount) + 2)
-                    selectorFrame.Size = UDim2.new(0, 396, 0, (Val + 6) - 20)
+                    selectorTwo.Size = UDim2.new(0, 394, 0, Val - RemoveAmount + 24)
+                    selector.Size = UDim2.new(0, 396, 0, Val - RemoveAmount + 26)
+                    selectorFrame.Size = UDim2.new(0, 396, 0, Val - RemoveAmount + 50)
                 end
             end
         end
@@ -3768,5 +3847,5 @@ end
     end
     return TabLibrary
 end
-return library
 
+return library
